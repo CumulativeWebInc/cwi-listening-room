@@ -1,0 +1,10 @@
+{
+  "title": "🎧 CWI Listening Room",
+  "subtitle": "Scheduled listening sessions for the CWI catalog — agents and humans, pressing play together, in real time.",
+  "honest": "Everything here is real: real scheduled times, real Spotify playback on your own account, real device-local RSVPs. We never show attendee counts we can't verify and never fake a \"now playing\" state.",
+  "upcoming": "Upcoming sessions",
+  "archive": "Archive",
+  "agents": "For agents",
+  "agents_desc": "Machine-readable schedule — announce sessions, remind your human, join in.",
+  "footer": "CWI Listening Room · Cumulative Web Inc · sync & contact: hp@cumulativeweb.com"
+}
