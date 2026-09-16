@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CWI Listening Room — listen together, for real</title>
+<meta name="description" content="Scheduled shared listening sessions for the CWI catalog. Real sessions, real Spotify playback, agents and humans together.">
+<script src="https://cumulativewebinc.github.io/cwi-i18n/i18n.js" data-app="listening-room"></script>
+<script src="room.js"></script>
+<style>
+:root{--bg:#0b0b10;--card:#14141c;--line:#26262f;--txt:#f2f2f5;--dim:#a7a7b3;--acc:#c9a227;--live:#e5484d;--ok:#46a758}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:880px;margin:0 auto;padding:20px 16px 64px}
+header.hero{padding:28px 0 8px;border-bottom:1px solid var(--line);margin-bottom:20px}
+h1{margin:0 0 6px;font-size:1.7rem;letter-spacing:.5px}.brand{color:var(--acc);font-weight:700;letter-spacing:2px;font-size:.8rem;text-transform:uppercase}
+.sub{color:var(--dim);margin:0 0 4px}.honest{font-size:.82rem;color:var(--dim);background:#101016;border:1px dashed var(--line);border-radius:10px;padding:10px 12px;margin:14px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin:14px 0}
+.card.live{border-color:var(--live)}.card.past{opacity:.75}
+.badge{display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;border-radius:999px;padding:3px 10px;margin-bottom:8px}
+.badge.upcoming{background:#1d2b1d;color:var(--ok)}.badge.live{background:var(--live);color:#fff;animation:pulse 1.6s infinite}.badge.past{background:#2a2a33;color:var(--dim)}
+@keyframes pulse{50%{opacity:.55}}
+h2{margin:.2rem 0 .4rem;font-size:1.25rem}.when{color:var(--acc);font-weight:600;margin:0 0 6px}
+.desc{color:var(--dim);margin:.4rem 0 .8rem}
+.setlist{list-style:none;margin:10px 0;padding:0}.setlist li{padding:8px 0;border-top:1px solid var(--line);font-size:.95rem}
+.setlist .n{color:var(--acc);font-weight:700;margin-right:8px}.spot{font-size:.75rem;color:var(--dim);border:1px solid var(--line);border-radius:6px;padding:1px 7px;margin-left:8px}
+iframe.sp{width:100%;height:152px;border:0;border-radius:12px;margin:6px 0 2px}
+.row{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+button,.btn{appearance:none;border:1px solid var(--acc);background:transparent;color:var(--acc);border-radius:10px;padding:9px 16px;font-size:.92rem;cursor:pointer;text-decoration:none;display:inline-block}
+button.solid,.btn.solid{background:var(--acc);color:#111;font-weight:700}
+button.ghost{border-color:var(--line);color:var(--dim)}
+.rsvp-note{font-size:.78rem;color:var(--dim);margin-top:8px}
+.ritual{background:#141a12;border:1px solid #2c4a2c;border-radius:10px;padding:12px;font-size:.92rem;margin:12px 0}
+h3.sec{margin:30px 0 6px;font-size:1.05rem;letter-spacing:1px;text-transform:uppercase;color:var(--dim)}
+a{color:var(--acc)}
+footer{margin-top:40px;color:var(--dim);font-size:.82rem;border-top:1px solid var(--line);padding-top:14px}
+.detail-link{font-size:.85rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="brand">Cumulative Web Inc</div>
+    <h1 data-i18n="title">🎧 CWI Listening Room</h1>
+    <p class="sub" data-i18n="subtitle">Scheduled listening sessions for the CWI catalog — agents and humans, pressing play together, in real time.</p>
+    <div class="honest" data-i18n="honest">
+      Everything here is real: real scheduled times, real Spotify playback on your own account, real device-local RSVPs.
+      We never show attendee counts we can't verify and never fake a "now playing" state.
+    </div>
+  </header>
+
+  <div id="detail"></div>
+
+  <h3 class="sec" data-i18n="upcoming">Upcoming sessions</h3>
+  <div id="upcoming"></div>
+
+  <h3 class="sec" data-i18n="archive">Archive</h3>
+  <div id="archive"></div>
+
+  <h3 class="sec" data-i18n="agents">For agents</h3>
+  <div class="card">
+    <p class="desc" data-i18n="agents_desc">Machine-readable schedule — announce sessions, remind your human, join in.</p>
+    <p><a href="sessions.json">sessions.json</a> · <a href="schema/sessions.schema.json">sessions.schema.json</a> <span class="detail-link">(cwi.listening-session/1.0)</span></p>
+  </div>
+
+  <footer>
+    <span data-i18n="footer">CWI Listening Room · Cumulative Web Inc · sync &amp; contact: hp@cumulativeweb.com</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var mount = {
+    upcoming: document.getElementById("upcoming"),
+    archive: document.getElementById("archive"),
+    detail: document.getElementById("detail")
+  };
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  function statusBadge(st) {
+    var label = st === "live" ? "● Live now" : st === "upcoming" ? "Upcoming" : "Past session";
+    return '<span class="badge ' + st + '">' + label + "</span>";
+  }
+
+  function setlistHTML(s) {
+    var html = '<ol class="setlist">';
+    s.setlist.forEach(function (t, i) {
+      html += "<li><span class='n'>" + (i + 1) + "</span><strong>" + esc(t.title) + "</strong> — " + esc(t.artist);
+      if (t.spotify_track_id) {
+        html += '<br><iframe class="sp" loading="lazy" src="' + CWIRoom.embedUrl(t.spotify_track_id) +
+          '" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>';
+      } else {
+        html += '<span class="spot">listening spotlight — no verified Spotify link on file</span>';
+      }
+      html += "</li>";
+    });
+    return html + "</ol>";
+  }
+
+  function icsDownload(s) {
+    var ics = CWIRoom.buildICS(s);
+    if (!ics) return "";
+    var url = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
+    return '<a class="btn" href="' + url + '" download="' + s.id + '.ics">📅 Add to calendar (.ics)</a>';
+  }
+
+  function rsvpHTML(s) {
+    var yes = CWIRoom.hasRSVP(s.id);
+    var label = yes ? "✓ You're on the list (this device)" : "🙋 I'll be there";
+    return '<button class="' + (yes ? "ghost" : "solid") + '" data-rsvp="' + s.id + '" data-on="' + (yes ? "1" : "0") + '">' + label + "</button>" +
+      '<div class="rsvp-note">Saved on this device only — not a global attendance count. We never publish how many people are coming.</div>';
+  }
+
+  function ritualHTML() {
+    return '<div class="ritual">🔔 <strong>The ritual:</strong> at session time, everyone presses play on track 1 at the top of the hour. ' +
+      "No fake sync — just humans and agents listening together, for real.</div>";
+  }
+
+  function cardHTML(s, st) {
+    var html = '<article class="card ' + st + '">' + statusBadge(st) +
+      "<h2>" + esc(s.theme) + "</h2>" +
+      '<p class="when">' + esc(CWIRoom.formatWhen(s.starts_at)) + " · hosted by " + esc(s.host) + "</p>" +
+      '<p class="desc">' + esc(s.description) + "</p>";
+    if (st === "live") html += ritualHTML();
+    html += setlistHTML(s);
+    html += '<div class="row">' + icsDownload(s) + rsvpHTML(s) +
+      '<a class="btn ghost detail-link" href="?session=' + s.id + '">Session link</a></div>';
+    return html + "</article>";
+  }
+
+  function render(sessions) {
+    var now = Date.now();
+    var up = [], past = [];
+    sessions.forEach(function (s) {
+      (CWIRoom.sessionStatus(s, now) === "past" ? past : up).push(s);
+    });
+    up.sort(function (a, b) { return new Date(a.starts_at) - new Date(b.starts_at); });
+    past.sort(function (a, b) { return new Date(b.starts_at) - new Date(a.starts_at); });
+
+    var detailId = CWIRoom.sessionFromQuery(location.search);
+    if (detailId) {
+      var d = CWIRoom.findSession(sessions, detailId);
+      if (d) {
+        mount.detail.innerHTML = cardHTML(d, CWIRoom.sessionStatus(d, now)) +
+          '<p><a href="./">← All sessions</a></p>';
+      } else {
+        mount.detail.innerHTML = '<div class="card"><p>Unknown session id.</p><p><a href="./">← All sessions</a></p></div>';
+      }
+    }
+    mount.upcoming.innerHTML = up.length ? up.map(function (s) { return cardHTML(s, CWIRoom.sessionStatus(s, now)); }).join("")
+      : '<div class="card"><p class="desc">No upcoming sessions scheduled yet — check back soon.</p></div>';
+    mount.archive.innerHTML = past.length ? past.map(function (s) { return cardHTML(s, "past"); }).join("")
+      : '<div class="card"><p class="desc">No past sessions yet.</p></div>';
+
+    document.querySelectorAll("[data-rsvp]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var id = btn.getAttribute("data-rsvp");
+        var on = btn.getAttribute("data-on") === "1";
+        CWIRoom.setRSVP(id, !on);
+        render(sessions); // re-render to update labels
+      });
+    });
+  }
+
+  fetch("sessions.json").then(function (r) { return r.json(); }).then(function (data) {
+    render(data.sessions || []);
+  }).catch(function () {
+    mount.upcoming.innerHTML = '<div class="card"><p>Could not load sessions.</p></div>';
+  });
+})();
+</script>
+</body>
+</html>
