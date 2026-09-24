@@ -10,5 +10,6 @@
     "name": "Cumulative Web Inc",
     "url": "https://cumulativeweb.com/"
   },
-  "description": "Scheduled shared listening sessions for the CWI catalog, including seeded Friday 8PM ET sessions."
+  "description": "Scheduled shared listening sessions for the CWI catalog, including seeded Friday 8PM ET sessions.",
+  "schema_version": "1.0.0"
 }
