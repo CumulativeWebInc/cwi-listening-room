@@ -1,0 +1,14 @@
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Listening Room (#36)",
+  "url": "https://cumulativewebinc.github.io/cwi-listening-room/",
+  "applicationCategory": "MultimediaApplication",
+  "operatingSystem": "Web",
+  "author": {
+    "@type": "Organization",
+    "name": "Cumulative Web Inc",
+    "url": "https://cumulativeweb.com/"
+  },
+  "description": "Scheduled shared listening sessions for the CWI catalog, including seeded Friday 8PM ET sessions."
+}
